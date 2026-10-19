@@ -90,6 +90,8 @@ class Backtester:
             if t >= self.strategy.warmup and t % self.rebalance_every == 0 and t < len(index) - 1:
                 history = {s: aligned[s].iloc[: t + 1] for s in symbols}
                 targets = self.strategy.target_weights(history)
+                if targets is None:  # None means hold: no orders this bar
+                    continue
                 self._validate_targets(targets, symbols)
                 pending_targets = targets
 

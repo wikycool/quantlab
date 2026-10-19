@@ -17,11 +17,12 @@ class Strategy(ABC):
     warmup: int = 0
 
     @abstractmethod
-    def target_weights(self, history: dict[str, pd.DataFrame]) -> dict[str, float]:
+    def target_weights(self, history: dict[str, pd.DataFrame]) -> dict[str, float] | None:
         """Return target weights (fraction of equity) per symbol.
 
         Weights may sum to less than 1 (remainder held in cash).
         Symbols omitted from the dict are treated as weight 0.
+        Return None to hold current positions without trading.
         """
 
 
@@ -31,11 +32,12 @@ class BuyAndHold(Strategy):
     def __init__(self) -> None:
         self._weights: dict[str, float] | None = None
 
-    def target_weights(self, history: dict[str, pd.DataFrame]) -> dict[str, float]:
+    def target_weights(self, history: dict[str, pd.DataFrame]) -> dict[str, float] | None:
         if self._weights is None:
             n = len(history)
             self._weights = {sym: 1.0 / n for sym in history}
-        return self._weights
+            return self._weights
+        return None  # hold: never rebalance after entry
 
 
 class Momentum(Strategy):
@@ -48,7 +50,7 @@ class Momentum(Strategy):
         self.top_k = top_k
         self.warmup = lookback
 
-    def target_weights(self, history: dict[str, pd.DataFrame]) -> dict[str, float]:
+    def target_weights(self, history: dict[str, pd.DataFrame]) -> dict[str, float] | None:
         scores: dict[str, float] = {}
         for sym, df in history.items():
             closes = df["close"]
@@ -67,7 +69,7 @@ class MeanReversion(Strategy):
         self.z_entry = z_entry
         self.warmup = lookback
 
-    def target_weights(self, history: dict[str, pd.DataFrame]) -> dict[str, float]:
+    def target_weights(self, history: dict[str, pd.DataFrame]) -> dict[str, float] | None:
         longs: list[str] = []
         for sym, df in history.items():
             window = df["close"].iloc[-self.lookback :]

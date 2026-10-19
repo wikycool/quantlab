@@ -94,3 +94,9 @@ def test_weights_index_matches_equity_index(prices):
     result = Backtester(prices, Momentum(lookback=30)).run()
     pd.testing.assert_index_equal(result.weights.index, result.equity.index)
     assert result.returns.iloc[0] == 0.0
+
+
+def test_buy_and_hold_trades_only_once(prices):
+    result = Backtester(prices, BuyAndHold(), costs=CostModel.realistic()).run()
+    assert len(result.trades) == len(prices)
+    assert result.trades["date"].nunique() == 1
