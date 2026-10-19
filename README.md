@@ -54,6 +54,23 @@ class GoldenCross(Strategy):
 
 `history` maps each symbol to its OHLCV DataFrame up to and including the current bar. Return target weights as fractions of equity; anything unallocated stays in cash.
 
+## Results on real data
+
+`examples/real_etf_backtest.py` runs the reference strategies on daily, split/dividend-adjusted bars for SPY, QQQ, IWM, TLT and GLD from Yahoo Finance (via yfinance), 2010-01-04 to 2025-12-31. $100k starting capital, signals checked every bar, momentum holds the single top ETF, mean reversion buys below -1σ of the 20-day mean. "Realistic" costs are `CostModel.realistic()`: 5 bps slippage plus 1 bp commission.
+
+| Strategy | Costs | Total return | CAGR | Sharpe | Max drawdown | Trades |
+|---|---|---|---|---|---|---|
+| Buy-and-hold (equal weight) | zero | +564% | 12.6% | 0.92 | -29.0% | 5 |
+| Buy-and-hold (equal weight) | realistic | +563% | 12.6% | 0.92 | -29.0% | 5 |
+| Momentum 60d | zero | +238% | 7.9% | 0.53 | -36.1% | 997 |
+| Momentum 60d | realistic | +86% | 3.9% | 0.31 | -39.2% | 4,461 |
+| Mean reversion 20d | zero | +233% | 7.8% | 0.59 | -28.1% | 4,487 |
+| Mean reversion 20d | realistic | +38% | 2.0% | 0.21 | -35.3% | 5,039 |
+
+Costs cut momentum's Sharpe from 0.53 to 0.31 and mean reversion's from 0.59 to 0.21; neither beats passive equal weight. As a sanity check, SPY alone buy-and-hold returns 13.9% a year with a -33.7% max drawdown over the same period.
+
+**Caveat on trade counts.** With slippage on, trade counts jump (momentum 997 to 4,461) because the engine re-targets exact weights every bar and has no minimum trade size or no-trade band, so price drift triggers many tiny top-up trades. This overstates the cost drag relative to a real execution policy; a rebalance band is the obvious next experiment.
+
 ## Design notes
 
 - **Execution model.** Decision at close of *t*, fill at open of *t+1*. This is the most conservative assumption available from daily bars and eliminates the most common source of inflated backtest Sharpe.
